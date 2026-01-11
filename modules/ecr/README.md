@@ -1,12 +1,12 @@
 # ECR Module
 
-This module creates Amazon Elastic Container Registry (ECR) repositories for storing Docker images.
+This module creates Amazon ECR repositories for storing Docker images.
 
 ## Resources Created
 
-- ECR repository for API (NestJS)
-- ECR repository for UI (React SSR)
-- Lifecycle policies to keep only the last 10 images (cleanup old images)
+- ECR repository for API: `${project_name}-${environment}-api` (e.g., `lexiclab-prod-api`)
+- ECR repository for UI: `${project_name}-${environment}-ui` (e.g., `lexiclab-prod-ui`)
+- Lifecycle policies to keep last 10 images (auto-cleanup old images)
 - Image scanning enabled on push
 
 ## Usage

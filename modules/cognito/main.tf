@@ -71,6 +71,27 @@ resource "aws_cognito_user_pool_domain" "main" {
   user_pool_id = aws_cognito_user_pool.main.id
 }
 
+# Google Identity Provider (optional)
+resource "aws_cognito_identity_provider" "google" {
+  count = var.google_client_id != "" ? 1 : 0
+
+  user_pool_id  = aws_cognito_user_pool.main.id
+  provider_name = "Google"
+  provider_type = "Google"
+
+  provider_details = {
+    client_id        = var.google_client_id
+    client_secret    = var.google_client_secret
+    authorize_scopes = "email profile openid"
+  }
+
+  attribute_mapping = {
+    email    = "email"
+    name     = "name"
+    username = "sub"
+  }
+}
+
 # Cognito User Pool Client
 resource "aws_cognito_user_pool_client" "main" {
   name         = "${var.project_name}-${var.environment}-client"
@@ -80,6 +101,12 @@ resource "aws_cognito_user_pool_client" "main" {
   allowed_oauth_flows_user_pool_client = true
   allowed_oauth_flows                  = ["code", "implicit"]
   allowed_oauth_scopes                 = ["email", "openid", "phone", "profile"]
+
+  # Supported identity providers (local Cognito + Google if configured)
+  supported_identity_providers = concat(
+    ["COGNITO"],
+    var.google_client_id != "" ? ["Google"] : []
+  )
 
   # Callback URLs (using ALB DNS)
   callback_urls = [
@@ -131,6 +158,9 @@ resource "aws_cognito_user_pool_client" "main" {
     "ALLOW_REFRESH_TOKEN_AUTH",
     "ALLOW_USER_PASSWORD_AUTH"
   ]
+
+  # Ensure identity providers are created before the client
+  depends_on = [aws_cognito_identity_provider.google]
 }
 
 # Data source for AWS account ID

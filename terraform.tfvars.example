@@ -12,5 +12,10 @@ aws_secret_access_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
 # Note: AWS Cognito User Pool will be automatically created by Terraform
 # No manual configuration needed - it will be automatically set up with the correct callback URLs
 
+# Optional: Google OAuth for Cognito (enable "Sign in with Google")
+# Get these from Google Cloud Console: https://console.cloud.google.com/apis/credentials
+google_client_id     = ""  # Example: "123456789-abcdefghijklmnop.apps.googleusercontent.com"
+google_client_secret = ""  # Keep this secret!
+
 # Optional: ACM certificate ARN for ALB HTTPS (leave empty for HTTP only)
 acm_certificate_arn = ""

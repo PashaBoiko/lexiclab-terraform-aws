@@ -33,6 +33,10 @@ module "cognito" {
 
   deletion_protection = true
 
+  # Google OAuth (optional)
+  google_client_id     = var.google_client_id
+  google_client_secret = var.google_client_secret
+
   tags = local.common_tags
 
   depends_on = [module.alb]

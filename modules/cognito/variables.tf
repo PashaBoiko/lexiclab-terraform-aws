@@ -19,6 +19,20 @@ variable "deletion_protection" {
   default     = true
 }
 
+variable "google_client_id" {
+  description = "Google OAuth Client ID (leave empty to disable Google sign-in)"
+  type        = string
+  default     = ""
+  sensitive   = false
+}
+
+variable "google_client_secret" {
+  description = "Google OAuth Client Secret (required if google_client_id is provided)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
 variable "tags" {
   description = "Tags to apply to resources"
   type        = map(string)

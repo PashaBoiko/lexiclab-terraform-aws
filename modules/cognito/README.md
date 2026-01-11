@@ -5,6 +5,7 @@ This module creates an AWS Cognito User Pool with OAuth 2.0 configuration for us
 ## Features
 
 - User Pool with email-based authentication
+- **Google Sign-In support** (optional)
 - Password policy enforcement
 - OAuth 2.0 with authorization code and implicit flows
 - Automatic email verification
@@ -19,6 +20,8 @@ This module creates an AWS Cognito User Pool with OAuth 2.0 configuration for us
 - **Cognito User Pool Client**: OAuth client configuration
 
 ## Usage
+
+### Basic Configuration (Email/Password only)
 
 ```hcl
 module "cognito" {
@@ -36,6 +39,31 @@ module "cognito" {
   }
 }
 ```
+
+### With Google Sign-In
+
+```hcl
+module "cognito" {
+  source = "./modules/cognito"
+
+  project_name    = "lexiclab"
+  environment     = "prod"
+  application_url = "http://${module.alb.alb_dns_name}"
+
+  deletion_protection = true
+
+  # Enable Google OAuth
+  google_client_id     = "123456789-abc.apps.googleusercontent.com"
+  google_client_secret = "GOCSPX-your-secret-here"
+
+  tags = {
+    Project     = "lexiclab"
+    Environment = "prod"
+  }
+}
+```
+
+See `docs/GOOGLE_AUTH_SETUP.md` for complete Google OAuth setup instructions.
 
 ## OAuth Flow
 

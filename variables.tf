@@ -25,6 +25,20 @@ variable "aws_secret_access_key" {
 # Note: Cognito configuration is now managed by the cognito module
 # No manual configuration needed - it will be automatically created and configured
 
+variable "google_client_id" {
+  description = "Google OAuth Client ID for Cognito (optional)"
+  type        = string
+  default     = ""
+  sensitive   = false
+}
+
+variable "google_client_secret" {
+  description = "Google OAuth Client Secret for Cognito (optional)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
 variable "acm_certificate_arn" {
   description = "ACM certificate ARN for ALB HTTPS (optional)"
   type        = string
