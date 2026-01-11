@@ -1,0 +1,16 @@
+# MongoDB Atlas connection string (replace with your MongoDB Atlas connection string)
+mongodb_url = "mongodb+srv://username:password@cluster.mongodb.net/lexiclab?retryWrites=true&w=majority"
+
+# JWT authentication secret (generate with: openssl rand -base64 32)
+jwt_secret = "your-jwt-secret-here"
+
+# AWS credentials (same credentials used for S3, SES, and Bedrock)
+# Get these from AWS IAM Console
+aws_access_key_id     = "AKIAIOSFODNN7EXAMPLE"
+aws_secret_access_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+
+# Note: AWS Cognito User Pool will be automatically created by Terraform
+# No manual configuration needed - it will be automatically set up with the correct callback URLs
+
+# Optional: ACM certificate ARN for ALB HTTPS (leave empty for HTTP only)
+acm_certificate_arn = ""
