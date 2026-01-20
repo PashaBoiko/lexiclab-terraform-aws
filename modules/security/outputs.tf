@@ -23,7 +23,17 @@ output "ecs_task_role_api_arn" {
   value       = aws_iam_role.ecs_task_api.arn
 }
 
+output "ecs_task_role_api_name" {
+  description = "ECS task role name for API"
+  value       = aws_iam_role.ecs_task_api.name
+}
+
 output "ecs_task_role_ui_arn" {
   description = "ECS task role ARN for UI"
   value       = aws_iam_role.ecs_task_ui.arn
+}
+
+output "ecs_task_role_ui_name" {
+  description = "ECS task role name for UI"
+  value       = aws_iam_role.ecs_task_ui.name
 }

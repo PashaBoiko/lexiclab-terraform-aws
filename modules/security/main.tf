@@ -181,7 +181,8 @@ resource "aws_iam_role" "ecs_task_api" {
   )
 }
 
-# API Task Role Policy (S3, SES, Bedrock, Cognito)
+# API Task Role Policy (S3, SES, Bedrock)
+# Note: Cognito permissions are added separately in main.tf to avoid circular dependency
 resource "aws_iam_role_policy" "ecs_task_api" {
   name = "${var.project_name}-${var.environment}-ecs-api-policy"
   role = aws_iam_role.ecs_task_api.id
@@ -217,15 +218,6 @@ resource "aws_iam_role_policy" "ecs_task_api" {
           "bedrock:InvokeModelWithResponseStream"
         ]
         Resource = "*"
-      },
-      {
-        Effect = "Allow"
-        Action = [
-          "cognito-idp:AdminGetUser",
-          "cognito-idp:AdminListGroupsForUser",
-          "cognito-idp:GetUser"
-        ]
-        Resource = var.cognito_user_pool_arn
       }
     ]
   })
@@ -256,21 +248,4 @@ resource "aws_iam_role" "ecs_task_ui" {
   )
 }
 
-# UI Task Role Policy (Cognito read-only)
-resource "aws_iam_role_policy" "ecs_task_ui" {
-  name = "${var.project_name}-${var.environment}-ecs-ui-policy"
-  role = aws_iam_role.ecs_task_ui.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "cognito-idp:GetUser"
-        ]
-        Resource = var.cognito_user_pool_arn
-      }
-    ]
-  })
-}
+# Note: UI Task Role Cognito permissions are added separately in main.tf to avoid circular dependency

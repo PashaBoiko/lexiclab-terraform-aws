@@ -102,11 +102,8 @@ resource "aws_cognito_user_pool_client" "main" {
   allowed_oauth_flows                  = ["code", "implicit"]
   allowed_oauth_scopes                 = ["email", "openid", "phone", "profile"]
 
-  # Supported identity providers (local Cognito + Google if configured)
-  supported_identity_providers = concat(
-    ["COGNITO"],
-    var.google_client_id != "" ? ["Google"] : []
-  )
+  # Supported identity providers (Google only)
+  supported_identity_providers = ["Google"]
 
   # Callback URLs (using ALB DNS)
   callback_urls = [

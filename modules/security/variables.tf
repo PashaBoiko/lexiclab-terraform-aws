@@ -18,11 +18,6 @@ variable "s3_bucket_arn" {
   type        = string
 }
 
-variable "cognito_user_pool_arn" {
-  description = "Cognito User Pool ARN"
-  type        = string
-}
-
 variable "tags" {
   description = "Additional tags for resources"
   type        = map(string)

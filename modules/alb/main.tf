@@ -60,7 +60,7 @@ resource "aws_lb_target_group" "ui" {
     unhealthy_threshold = 3
     timeout             = 5
     interval            = 30
-    path                = "/"
+    path                = "/welcome"
     protocol            = "HTTP"
     matcher             = "200-299"
   }
@@ -91,7 +91,7 @@ resource "aws_lb_listener" "http" {
 
 # HTTPS Listener (optional, requires ACM certificate)
 resource "aws_lb_listener" "https" {
-  count = var.certificate_arn != "" ? 1 : 0
+  count = var.enable_https ? 1 : 0
 
   load_balancer_arn = aws_lb.main.arn
   port              = 443
@@ -107,10 +107,12 @@ resource "aws_lb_listener" "https" {
   tags = var.tags
 }
 
-# Listener Rule for API (HTTP)
-resource "aws_lb_listener_rule" "api_http" {
+# Listener Rule for API by host (HTTP) - api.lexiclab.com
+resource "aws_lb_listener_rule" "api_host_http" {
+  count = var.api_domain != "" ? 1 : 0
+
   listener_arn = aws_lb_listener.http.arn
-  priority     = 100
+  priority     = 50
 
   action {
     type             = "forward"
@@ -118,20 +120,20 @@ resource "aws_lb_listener_rule" "api_http" {
   }
 
   condition {
-    path_pattern {
-      values = ["/api/*"]
+    host_header {
+      values = [var.api_domain]
     }
   }
 
   tags = var.tags
 }
 
-# Listener Rule for API (HTTPS, if enabled)
-resource "aws_lb_listener_rule" "api_https" {
-  count = var.certificate_arn != "" ? 1 : 0
+# Listener Rule for API by host (HTTPS) - api.lexiclab.com
+resource "aws_lb_listener_rule" "api_host_https" {
+  count = var.enable_https && var.api_domain != "" ? 1 : 0
 
   listener_arn = aws_lb_listener.https[0].arn
-  priority     = 100
+  priority     = 50
 
   action {
     type             = "forward"
@@ -139,8 +141,8 @@ resource "aws_lb_listener_rule" "api_https" {
   }
 
   condition {
-    path_pattern {
-      values = ["/api/*"]
+    host_header {
+      values = [var.api_domain]
     }
   }
 

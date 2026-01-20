@@ -2,6 +2,7 @@ locals {
   project_name = "lexiclab"
   environment  = "prod"
   region       = "eu-central-1"
+  domain_name  = "lexiclab.com"
 
   common_tags = {
     Project     = "lexiclab"
@@ -23,13 +24,24 @@ module "networking" {
   tags = local.common_tags
 }
 
-# Cognito User Pool (must be created before security module)
+# DNS and SSL Certificate (must be created before ALB for HTTPS)
+module "dns" {
+  source = "./modules/dns"
+
+  project_name = local.project_name
+  environment  = local.environment
+  domain_name  = local.domain_name
+
+  tags = local.common_tags
+}
+
+# Cognito User Pool
 module "cognito" {
   source = "./modules/cognito"
 
   project_name    = local.project_name
   environment     = local.environment
-  application_url = "http://${module.alb.alb_dns_name}"
+  application_url = "https://${local.domain_name}"
 
   deletion_protection = true
 
@@ -38,23 +50,18 @@ module "cognito" {
   google_client_secret = var.google_client_secret
 
   tags = local.common_tags
-
-  depends_on = [module.alb]
 }
 
-# Security
+# Security (security groups and IAM roles - no Cognito dependency to avoid cycle)
 module "security" {
   source = "./modules/security"
 
-  project_name          = local.project_name
-  environment           = local.environment
-  vpc_id                = module.networking.vpc_id
-  s3_bucket_arn         = "arn:aws:s3:::lexiclab.static"
-  cognito_user_pool_arn = module.cognito.user_pool_arn
+  project_name  = local.project_name
+  environment   = local.environment
+  vpc_id        = module.networking.vpc_id
+  s3_bucket_arn = "arn:aws:s3:::lexiclab.static"
 
   tags = local.common_tags
-
-  depends_on = [module.cognito]
 }
 
 # ECR Repositories
@@ -103,9 +110,41 @@ module "alb" {
   public_subnet_ids  = module.networking.public_subnet_ids
   security_group_ids = [module.security.alb_security_group_id]
 
-  certificate_arn = var.acm_certificate_arn
+  enable_https    = true
+  certificate_arn = module.dns.certificate_arn
+  api_domain      = "api.${local.domain_name}"
 
   tags = local.common_tags
+}
+
+# Route53 A records pointing domain to ALB
+resource "aws_route53_record" "root" {
+  zone_id = data.aws_route53_zone.main.zone_id
+  name    = local.domain_name
+  type    = "A"
+
+  alias {
+    name                   = module.alb.alb_dns_name
+    zone_id                = module.alb.alb_zone_id
+    evaluate_target_health = true
+  }
+}
+
+resource "aws_route53_record" "api" {
+  zone_id = data.aws_route53_zone.main.zone_id
+  name    = "api.${local.domain_name}"
+  type    = "A"
+
+  alias {
+    name                   = module.alb.alb_dns_name
+    zone_id                = module.alb.alb_zone_id
+    evaluate_target_health = true
+  }
+}
+
+data "aws_route53_zone" "main" {
+  name         = local.domain_name
+  private_zone = false
 }
 
 # Monitoring
@@ -161,8 +200,8 @@ module "ecs_service_api" {
     { name = "COGNITO_CLIENT_ID", value = module.cognito.client_id },
     { name = "COGNITO_USER_POOL_ID", value = module.cognito.user_pool_id },
     { name = "COGNITO_SCOPE", value = "email+openid+phone" },
-    { name = "COGNITO_LOGIN_REDIRECT_URL", value = "http://${module.alb.alb_dns_name}/api/auth/sign-in" },
-    { name = "GOGNITO_LOGIN_SUCCESS_URL", value = "http://${module.alb.alb_dns_name}/" }
+    { name = "COGNITO_LOGIN_REDIRECT_URL", value = "https://${local.domain_name}/api/auth/sign-in" },
+    { name = "GOGNITO_LOGIN_SUCCESS_URL", value = "https://${local.domain_name}/" }
   ]
 
   secrets = [
@@ -206,15 +245,15 @@ module "ecs_service_ui" {
 
   environment_variables = [
     { name = "NODE_ENV", value = "production" },
-    { name = "SERVER_API_URL", value = "http://${module.alb.alb_dns_name}/api" },
+    { name = "SERVER_API_URL", value = "https://${local.domain_name}/api" },
     { name = "AWS_REGION", value = local.region },
     { name = "COGNITO_URL", value = module.cognito.cognito_url },
     { name = "COGNITO_CLIENT_ID", value = module.cognito.client_id },
     { name = "COGNITO_USER_POOL_ID", value = module.cognito.user_pool_id },
     { name = "COGNITO_SCOPE", value = "email+openid+phone" },
-    { name = "COGNITO_LOGIN_REDIRECT_URL", value = "http://${module.alb.alb_dns_name}/api/auth/sign-in" },
-    { name = "COGNITO_LOGOUT_REDIRECT_URL", value = "http://${module.alb.alb_dns_name}/api/auth/sign-out" },
-    { name = "GOGNITO_LOGIN_SUCCESS_URL", value = "http://${module.alb.alb_dns_name}/" }
+    { name = "COGNITO_LOGIN_REDIRECT_URL", value = "https://${local.domain_name}/api/auth/sign-in" },
+    { name = "COGNITO_LOGOUT_REDIRECT_URL", value = "https://${local.domain_name}/api/auth/sign-out" },
+    { name = "GOGNITO_LOGIN_SUCCESS_URL", value = "https://${local.domain_name}/" }
   ]
 
   secrets = []
@@ -226,3 +265,42 @@ module "ecs_service_ui" {
 
 # Data source for AWS account ID
 data "aws_caller_identity" "current" {}
+
+# Cognito IAM policies (created after Cognito to avoid circular dependency)
+resource "aws_iam_role_policy" "ecs_task_api_cognito" {
+  name = "${local.project_name}-${local.environment}-ecs-api-cognito-policy"
+  role = module.security.ecs_task_role_api_name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "cognito-idp:AdminGetUser",
+          "cognito-idp:AdminListGroupsForUser",
+          "cognito-idp:GetUser"
+        ]
+        Resource = module.cognito.user_pool_arn
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "ecs_task_ui_cognito" {
+  name = "${local.project_name}-${local.environment}-ecs-ui-cognito-policy"
+  role = module.security.ecs_task_role_ui_name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "cognito-idp:GetUser"
+        ]
+        Resource = module.cognito.user_pool_arn
+      }
+    ]
+  })
+}

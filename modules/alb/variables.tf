@@ -24,7 +24,19 @@ variable "security_group_ids" {
 }
 
 variable "certificate_arn" {
-  description = "ACM certificate ARN for HTTPS (optional)"
+  description = "ACM certificate ARN for HTTPS (required if enable_https is true)"
+  type        = string
+  default     = ""
+}
+
+variable "enable_https" {
+  description = "Enable HTTPS listener (requires certificate_arn)"
+  type        = bool
+  default     = false
+}
+
+variable "api_domain" {
+  description = "API subdomain for host-based routing (e.g., api.lexiclab.com)"
   type        = string
   default     = ""
 }
